@@ -1,0 +1,43 @@
+package org.example.domain;
+
+import org.example.domain.model.*;
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+class PointsAccountTest {
+
+    @Test
+    void earnsPoints() {
+        var acc = PointsAccount.create(CustomerId.of("u1"));
+
+        acc.earn(100);
+
+        assertEquals(100, acc.getBalance());
+    }
+
+    @Test
+    void failsToRedeemMoreThanBalance_noStateChange() {
+        var acc = PointsAccount.create(CustomerId.of("u1"));
+        acc.earn(20);
+
+        assertThrows(InsufficientPointsException.class, () -> acc.redeem(25));
+        assertEquals(20, acc.getBalance(), "Balance should remain unchanged");
+    }
+
+    @Test
+    void emitsLowBalanceWarningWhenBelow10() {
+        var acc = PointsAccount.create(CustomerId.of("u1"));
+        acc.earn(15);
+
+        List<DomainEvent> events = acc.redeem(10); // zostaje 5
+
+        assertFalse(events.isEmpty());
+        assertTrue(events.get(0) instanceof LowBalanceWarning);
+        var e = (LowBalanceWarning) events.get(0);
+        assertEquals("u1", e.getCustomerId());
+        assertEquals(5, e.getBalance());
+    }
+}
